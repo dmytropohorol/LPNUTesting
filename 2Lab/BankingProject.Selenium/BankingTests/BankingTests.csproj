@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <RootNamespace>BankingTests</RootNamespace>
+    <AssemblyName>BankingTests</AssemblyName>
+    <LangVersion>7.3</LangVersion>
+    <IsPackable>false</IsPackable>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Selenium WebDriver. Починаючи з версії 4.6 драйвер браузера
+         завантажує вбудований Selenium Manager, тому chromedriver.exe
+         вручну качати не треба. -->
+    <PackageReference Include="Selenium.WebDriver" Version="4.25.0" />
+    <!-- SelectElement для роботи з випадними списками -->
+    <PackageReference Include="Selenium.Support" Version="4.25.0" />
+
+    <!-- SpecFlow: BDD для .NET. Пакет Tools.MsBuild.Generation генерує
+         код кроків із .feature під час збирання, тому розширення для
+         Visual Studio не потрібне. -->
+    <PackageReference Include="SpecFlow.MsTest" Version="3.9.74" />
+    <PackageReference Include="SpecFlow.Tools.MsBuild.Generation" Version="3.9.74" />
+
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="MSTest.TestAdapter" Version="3.6.4" />
+    <PackageReference Include="MSTest.TestFramework" Version="3.6.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="specflow.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

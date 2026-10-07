@@ -1,0 +1,11 @@
+# Результати збирання
+[Bb]in/
+[Oo]bj/
+.vs/
+
+# Прогін тестів
+[Tt]est[Rr]esults/
+Screenshots/
+
+# Код, який SpecFlow генерує з .feature під час збирання
+*.feature.cs
