@@ -1,0 +1,9 @@
+{
+  "$schema": "https://specflow.org/json-schemas/specflow-3.9.json",
+  "language": {
+    "feature": "en"
+  },
+  "runtime": {
+    "missingOrPendingStepsOutcome": "Error"
+  }
+}
