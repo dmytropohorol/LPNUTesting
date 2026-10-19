@@ -3,25 +3,16 @@ using System.Linq;
 using BankingTests.Pages;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using TechTalk.SpecFlow;
-using TechTalk.SpecFlow.Assist;
 
 namespace BankingTests.StepDefinitions
 {
-    /// <summary>
-    /// Реалізація кроків сценаріїв з файлу OpenAccount.feature.
-    /// Кроки не працюють із Selenium напряму: усі дії делеговані сторінкам
-    /// (Page Objects Pattern), тому зміна верстки сайту не зачіпає цей файл.
-    /// </summary>
+    // Кроки не працюють із Selenium напряму, лише з методами сторінок (Page Objects).
     [Binding]
     public class OpenAccountSteps
     {
-        /// <summary>Скільки чекати на діалог alert, коли він очікується.</summary>
         private static readonly TimeSpan AlertTimeout = TimeSpan.FromSeconds(10);
 
-        /// <summary>
-        /// Скільки чекати, аби переконатися, що діалогу немає. Час менший:
-        /// цей крок завжди витрачає його повністю.
-        /// </summary>
+        // Коротше: коли діалогу не має бути, крок завжди чекає цей час повністю.
         private static readonly TimeSpan NoAlertTimeout = TimeSpan.FromSeconds(3);
 
         private readonly LoginPage _loginPage;
@@ -30,17 +21,12 @@ namespace BankingTests.StepDefinitions
 
         private string _alertText;
 
-        // Сторінки створює контейнер SpecFlow: по одному екземпляру на сценарій.
-        public OpenAccountSteps(LoginPage loginPage,
-                                ManagerPage managerPage,
-                                OpenAccountPage openAccountPage)
+        public OpenAccountSteps(LoginPage loginPage, ManagerPage managerPage, OpenAccountPage openAccountPage)
         {
             _loginPage = loginPage;
             _managerPage = managerPage;
             _openAccountPage = openAccountPage;
         }
-
-        // ------------------------------------------------------------ Given ---
 
         [Given(@"the XYZ Bank application is open")]
         public void GivenTheApplicationIsOpen()
@@ -55,8 +41,6 @@ namespace BankingTests.StepDefinitions
             _loginPage.LoginAsBankManager();
             Assert.IsTrue(_managerPage.IsOpen, "Сторінка менеджера банку не відкрилася.");
         }
-
-        // ------------------------------------------------------------- When ---
 
         [When(@"I open the Open Account tab")]
         public void WhenIOpenTheOpenAccountTab()
@@ -83,18 +67,13 @@ namespace BankingTests.StepDefinitions
             _openAccountPage.Process();
         }
 
-        // ------------------------------------------------------------- Then ---
-
         [Then(@"the account creation message is shown")]
         public void ThenTheAccountCreationMessageIsShown()
         {
             _alertText = _openAccountPage.ReadAndAcceptAlert(AlertTimeout);
 
-            Assert.IsNotNull(_alertText,
-                "Очікувалося повідомлення про створення рахунку, але діалог не з'явився.");
-
-            StringAssert.Contains(_alertText, "Account created successfully",
-                "Текст повідомлення не відповідає очікуваному.");
+            Assert.IsNotNull(_alertText, "Повідомлення про створення рахунку не зʼявилося.");
+            StringAssert.Contains(_alertText, "Account created successfully");
         }
 
         [Then(@"the created account number is not empty")]
@@ -102,40 +81,30 @@ namespace BankingTests.StepDefinitions
         {
             string accountNumber = OpenAccountPage.ExtractAccountNumber(_alertText);
 
-            Assert.IsFalse(string.IsNullOrWhiteSpace(accountNumber),
-                "У повідомленні немає номера рахунку: " + _alertText);
-
-            Assert.IsTrue(accountNumber.All(char.IsDigit),
-                "Номер рахунку має складатися лише з цифр, отримано: " + accountNumber);
+            Assert.IsFalse(string.IsNullOrWhiteSpace(accountNumber), "У повідомленні немає номера рахунку: " + _alertText);
+            Assert.IsTrue(accountNumber.All(char.IsDigit), "Номер рахунку не з цифр: " + accountNumber);
         }
 
         [Then(@"no account creation message is shown")]
         public void ThenNoAccountCreationMessageIsShown()
         {
             string text = _openAccountPage.ReadAndAcceptAlert(NoAlertTimeout);
-
-            Assert.IsNull(text,
-                "Рахунок не мав створитися, але застосунок показав повідомлення: " + text);
+            Assert.IsNull(text, "Рахунок не мав створитися, але зʼявилося повідомлення: " + text);
         }
 
         [Then(@"I stay on the Open Account page")]
         public void ThenIStayOnTheOpenAccountPage()
         {
-            StringAssert.Contains(_openAccountPage.CurrentUrl, "#/manager/openAccount",
-                "Застосунок пішов з вкладки Open Account.");
+            StringAssert.Contains(_openAccountPage.CurrentUrl, "#/manager/openAccount");
         }
 
         [Then(@"the customer list contains:")]
         public void ThenTheCustomerListContains(Table table)
         {
-            var expected = table.Rows.Select(row => row["customer"]).ToList();
             var actual = _openAccountPage.AvailableCustomers;
 
-            foreach (string customer in expected)
-            {
-                CollectionAssert.Contains((System.Collections.ICollection)actual, customer,
-                    "У списку клієнтів немає запису: " + customer);
-            }
+            foreach (var row in table.Rows)
+                Assert.IsTrue(actual.Contains(row["customer"]), "У списку клієнтів немає: " + row["customer"]);
         }
     }
 }

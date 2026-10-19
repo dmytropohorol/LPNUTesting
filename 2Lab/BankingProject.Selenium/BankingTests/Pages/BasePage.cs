@@ -6,16 +6,9 @@ using OpenQA.Selenium.Support.UI;
 
 namespace BankingTests.Pages
 {
-    /// <summary>
-    /// Спільна основа для сторінок (Page Objects Pattern).
-    /// Тут зібрані дії з елементами, щоб сторінки містили лише локатори
-    /// та операції предметної області, а кроки тестів не знали про Selenium.
-    /// </summary>
     public abstract class BasePage
     {
-        /// <summary>Адреса застосунку XYZ Bank.</summary>
-        public const string BaseUrl =
-            "https://www.globalsqa.com/angularJs-protractor/BankingProject/";
+        public const string BaseUrl = "https://www.globalsqa.com/angularJs-protractor/BankingProject/";
 
         protected readonly BrowserDriver Browser;
 
@@ -29,26 +22,21 @@ namespace BankingTests.Pages
             get { return Browser.Current; }
         }
 
-        /// <summary>Чекає, доки елемент з'явиться в DOM і стане видимим.</summary>
-        protected IWebElement Visible(By locator)
+        public string CurrentUrl
         {
-            return Browser.CreateWait().Until(driver =>
-            {
-                var element = driver.FindElements(locator).FirstOrDefault();
-                return element != null && element.Displayed ? element : null;
-            });
+            get { return Driver.Url; }
         }
 
-        /// <summary>Чи присутній видимий елемент протягом заданого часу.</summary>
+        protected IWebElement Visible(By locator)
+        {
+            return Browser.CreateWait().Until(driver => FindVisible(driver, locator));
+        }
+
         protected bool IsVisible(By locator, TimeSpan timeout)
         {
             try
             {
-                Browser.CreateWait(timeout).Until(driver =>
-                {
-                    var element = driver.FindElements(locator).FirstOrDefault();
-                    return element != null && element.Displayed ? element : null;
-                });
+                Browser.CreateWait(timeout).Until(driver => FindVisible(driver, locator));
                 return true;
             }
             catch (WebDriverTimeoutException)
@@ -67,16 +55,16 @@ namespace BankingTests.Pages
             return new SelectElement(Visible(locator));
         }
 
-        /// <summary>Чекає, доки адреса сторінки міститиме заданий фрагмент.</summary>
         protected void WaitForUrlFragment(string fragment)
         {
             Browser.CreateWait().Until(driver =>
                 driver.Url.IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0);
         }
 
-        public string CurrentUrl
+        private static IWebElement FindVisible(IWebDriver driver, By locator)
         {
-            get { return Driver.Url; }
+            var element = driver.FindElements(locator).FirstOrDefault();
+            return element != null && element.Displayed ? element : null;
         }
     }
 }

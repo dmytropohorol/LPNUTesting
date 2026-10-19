@@ -1,12 +1,4 @@
-﻿/*==============================================================================
-  Лабораторна робота №1 — "Модульне тестування ПЗ"
-  Варіант 4: бібліотека AnalaizerClassLibrary, метод Format()
-
-  01_CreateSchema.sql — створення бази даних та структури таблиць,
-  у яких зберігається набір даних для модульних тестів.
-
-  Запуск: SSMS / sqlcmd / Database\Deploy-TestDatabase.ps1
-==============================================================================*/
+﻿-- Лаба 1, варіант 4: структура бази тестових даних для AnalaizerClass.Format()
 
 IF DB_ID(N'CalcTestDb') IS NULL
     CREATE DATABASE [CalcTestDb];
@@ -22,51 +14,31 @@ IF OBJECT_ID(N'dbo.ErrorCode',       N'U') IS NOT NULL DROP TABLE dbo.ErrorCode;
 IF OBJECT_ID(N'dbo.TestCategory',    N'U') IS NOT NULL DROP TABLE dbo.TestCategory;
 GO
 
-/*------------------------------------------------------------------------------
-  dbo.ErrorCode — довідник кодів помилок зі специфікації (п. 2.2.3 SpecCalc).
-  Зберігається лише ІМ'Я константи (ERROR_01 ... ERROR_09); повний текст
-  повідомлення тест бере з ErrorLibrary.ErrorsExpression, щоб мати одне
-  єдине джерело правди для тексту помилки.
-------------------------------------------------------------------------------*/
+-- Зберігається лише імʼя константи помилки, текст тест бере з ErrorLibrary.
 CREATE TABLE dbo.ErrorCode
 (
     ErrorCodeId     INT           NOT NULL,
     ErrorName       NVARCHAR(16)  NOT NULL,
-    HasPosition     BIT           NOT NULL,   -- чи містить шаблон маркер <i>
-    MessageTemplate NVARCHAR(400) NOT NULL,   -- довідково, як у специфікації
+    HasPosition     BIT           NOT NULL,
+    MessageTemplate NVARCHAR(400) NOT NULL,
     CONSTRAINT PK_ErrorCode        PRIMARY KEY (ErrorCodeId),
     CONSTRAINT UQ_ErrorCode_Name   UNIQUE (ErrorName)
 );
 GO
 
-/*------------------------------------------------------------------------------
-  dbo.TestCategory — класи еквівалентності вхідних даних. Кожна категорія
-  прив'язана до конкретної гілки методу Format(), яку вона покриває.
-------------------------------------------------------------------------------*/
+-- Класи еквівалентності, кожен привʼязаний до гілки Format().
 CREATE TABLE dbo.TestCategory
 (
     TestCategoryId INT           NOT NULL,
     CategoryName   NVARCHAR(60)  NOT NULL,
-    CoveredBranch  NVARCHAR(160) NOT NULL,   -- гілка Format(), що покривається
+    CoveredBranch  NVARCHAR(160) NOT NULL,
     Description    NVARCHAR(300) NOT NULL,
     CONSTRAINT PK_TestCategory      PRIMARY KEY (TestCategoryId),
     CONSTRAINT UQ_TestCategory_Name UNIQUE (CategoryName)
 );
 GO
 
-/*------------------------------------------------------------------------------
-  dbo.FormatTestCase — набір тестових даних.
-
-  InputPattern + InputRepeat  задають вхідний вираз як повторення фрагмента.
-  Це дозволяє зберігати граничні випадки довжини (65536 / 65537 символів)
-  без роздування таблиці: InputPattern = N'1', InputRepeat = 65537.
-
-  Очікуваний результат задається ВЗАЄМОВИКЛЮЧНО:
-    * ExpectedErrorCodeId (+ ExpectedPosition)  — очікується повідомлення
-      про помилку, тобто рядок, що починається зі спец. символу '&';
-    * ExpectedOutputPattern (+ ExpectedOutputRepeat) — очікується
-      відформатований вираз.
-------------------------------------------------------------------------------*/
+-- Вхід = InputPattern x InputRepeat: випадки на 65536+ символів займають один рядок.
 CREATE TABLE dbo.FormatTestCase
 (
     TestCaseId            INT IDENTITY(1,1) NOT NULL,
@@ -97,7 +69,7 @@ CREATE TABLE dbo.FormatTestCase
     CONSTRAINT CK_FormatTestCase_Repeat CHECK
         (InputRepeat >= 0 AND ExpectedOutputRepeat >= 0),
 
-    -- або помилка, або результат — але не обидва одночасно
+    -- або очікувана помилка, або очікуваний результат, не обидва
     CONSTRAINT CK_FormatTestCase_Outcome CHECK
     (
         (ExpectedErrorCodeId IS NOT NULL AND ExpectedOutputPattern IS NULL)
@@ -112,9 +84,6 @@ GO
 CREATE INDEX IX_FormatTestCase_Category ON dbo.FormatTestCase (TestCategoryId);
 GO
 
-/*------------------------------------------------------------------------------
-  dbo.vFormatTestCase — представлення, з якого читає модульний тест.
-------------------------------------------------------------------------------*/
 CREATE VIEW dbo.vFormatTestCase
 AS
 SELECT  tc.TestCaseId,

@@ -1,15 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  Налаштування збору покриття коду для модульних тестів методу Format().
-  Використання:
-      vstest.console.exe <test.dll> /Settings:coverage.runsettings
-                         /Collect:"XPlat Code Coverage"
--->
+<!-- vstest.console.exe <test.dll> /Settings:coverage.runsettings /Collect:"XPlat Code Coverage" -->
 <RunSettings>
 
   <RunConfiguration>
     <TargetFrameworkVersion>net472</TargetFrameworkVersion>
-    <!-- Format() працює зі статичним полем expression: паралелізм заборонено -->
     <MaxCpuCount>1</MaxCpuCount>
   </RunConfiguration>
 
@@ -18,7 +12,6 @@
       <DataCollector friendlyName="XPlat code coverage">
         <Configuration>
           <Format>cobertura</Format>
-          <!-- Вимірюємо покриття лише бібліотек, що тестуються -->
           <Include>[AnalizerClassLibrary]*,[ErrorLibrary]*</Include>
           <Exclude>[AnalizerClassLibrary.Tests]*</Exclude>
           <ExcludeByAttribute>CompilerGeneratedAttribute</ExcludeByAttribute>

@@ -12,14 +12,6 @@ using TechTalk.SpecFlow;
 
 namespace ApiTests.StepDefinitions
 {
-    /// <summary>
-    /// Кроки сценаріїв CRUD з файлу BookingCrud.feature.
-    /// </summary>
-    /// <remarks>
-    /// Кроки не працюють із RestSharp напряму: адреси ресурсів і формат тіла
-    /// знає лише клієнт. Так зміна контракту API зачіпає один файл, а не
-    /// кожен сценарій.
-    /// </remarks>
     [Binding]
     public class BookingCrudSteps
     {
@@ -32,31 +24,19 @@ namespace ApiTests.StepDefinitions
             _context = context;
         }
 
-        // ------------------------------------------------------------ Given ---
-
         [Given(@"the booking service is available")]
         public void GivenTheServiceIsAvailable()
         {
-            RestResponse response = _booker.Ping();
-
-            // Сервіс відповідає на перевірку доступності кодом 201, хоча для
-            // читання очікувався б 200. Відхилення описане у звіті.
-            Assert.AreEqual(HttpStatusCode.Created, response.StatusCode,
-                "Сервіс restful-booker недоступний. " + _booker.ExchangeLog);
+            // Сервіс відповідає на ping кодом 201, а не 200. Відхилення описане у звіті.
+            Assert.AreEqual(HttpStatusCode.Created, _booker.Ping().StatusCode, "Сервіс restful-booker недоступний.");
         }
 
         [Given(@"I have an access token")]
         public void GivenIHaveAnAccessToken()
         {
-            RestResponse response = _booker.CreateToken(
-                BookerClient.AdminUser, BookerClient.AdminPassword);
+            var auth = Deserialize<AuthResult>(_booker.CreateToken(BookerClient.AdminUser, BookerClient.AdminPassword));
 
-            var auth = Deserialize<AuthResult>(response);
-
-            Assert.IsNotNull(auth, "Відповідь на запит маркера не є JSON. " + _booker.ExchangeLog);
-            Assert.IsFalse(string.IsNullOrEmpty(auth.Token),
-                "Не вдалося отримати маркер доступу. " + _booker.ExchangeLog);
-
+            Assert.IsFalse(string.IsNullOrEmpty(auth?.Token), "Не вдалося отримати маркер доступу.");
             _context.Token = auth.Token;
         }
 
@@ -67,23 +47,23 @@ namespace ApiTests.StepDefinitions
             ThenTheBookingIsCreatedAndHasANumber();
         }
 
-        // ------------------------------------------------------------- When ---
-
+        // Номер запамʼятовується тут, а не в кроці Then: сценарій без кроку
+        // перевірки створення інакше працював би з бронюванням номер 0.
         [When(@"I create a booking")]
         public void WhenICreateABooking()
         {
             _context.SentBooking = TestData.ValidBooking();
             _context.Response = _booker.CreateBooking(_context.SentBooking);
 
-            RememberCreatedBooking();
+            var created = Deserialize<CreatedBooking>(_context.Response);
+            if (created != null)
+                _context.BookingId = created.BookingId;
         }
 
         [When(@"I create a booking with the first name only")]
         public void WhenICreateAnIncompleteBooking()
         {
-            // Тіло навмисно неповне: обовязкових полів у ньому немає.
-            var incomplete = new Booking { FirstName = "OnlyName" };
-            _context.Response = _booker.CreateBooking(incomplete);
+            _context.Response = _booker.CreateBooking(new Booking { FirstName = "OnlyName" });
         }
 
         [When(@"I read the created booking")]
@@ -107,16 +87,14 @@ namespace ApiTests.StepDefinitions
         [When(@"I search bookings by the customer name")]
         public void WhenISearchBookingsByName()
         {
-            _context.Response = _booker.GetBookingIdsByName(
-                _context.SentBooking.FirstName, _context.SentBooking.LastName);
+            _context.Response = _booker.GetBookingIdsByName(_context.SentBooking.FirstName, _context.SentBooking.LastName);
         }
 
         [When(@"I replace the booking with other data")]
         public void WhenIReplaceTheBooking()
         {
             _context.SentBooking = TestData.ReplacementBooking();
-            _context.Response = _booker.UpdateBooking(
-                _context.BookingId, _context.SentBooking, _context.Token);
+            _context.Response = _booker.UpdateBooking(_context.BookingId, _context.SentBooking, _context.Token);
         }
 
         [When(@"I change only the total price to (\d+)")]
@@ -124,11 +102,8 @@ namespace ApiTests.StepDefinitions
         {
             var changes = new JObject();
             changes["totalprice"] = price;
+            _context.Response = _booker.PatchBooking(_context.BookingId, changes, _context.Token);
 
-            _context.Response = _booker.PatchBooking(
-                _context.BookingId, changes, _context.Token);
-
-            // Очікування сценарію: змінилася лише сума, решта полів та сама.
             _context.SentBooking.TotalPrice = price;
         }
 
@@ -136,9 +111,6 @@ namespace ApiTests.StepDefinitions
         public void WhenIDeleteTheBooking()
         {
             _context.Response = _booker.DeleteBooking(_context.BookingId, _context.Token);
-
-            // Бронювання вже немає, тож прибирати його після сценарію не треба.
-            _context.CreatedBookingIds.Remove(_context.BookingId);
         }
 
         [When(@"I send a (replace|delete) request to a booking that does not exist")]
@@ -146,157 +118,77 @@ namespace ApiTests.StepDefinitions
         {
             int id = TestData.MissingBookingId;
 
-            switch (operation)
-            {
-                case "replace":
-                    _context.Response = _booker.UpdateBooking(
-                        id, TestData.ReplacementBooking(), _context.Token);
-                    break;
-
-                case "delete":
-                    _context.Response = _booker.DeleteBooking(id, _context.Token);
-                    break;
-
-                default:
-                    Assert.Fail("Невідома операція: " + operation);
-                    break;
-            }
+            _context.Response = operation == "replace"
+                ? _booker.UpdateBooking(id, TestData.ReplacementBooking(), _context.Token)
+                : _booker.DeleteBooking(id, _context.Token);
         }
-
-        // ------------------------------------------------------------- Then ---
 
         [Then(@"the booking is created and has a number")]
         public void ThenTheBookingIsCreatedAndHasANumber()
         {
-            AssertStatus(HttpStatusCode.OK);
+            Assert.AreEqual(HttpStatusCode.OK, _context.Response.StatusCode);
 
             var created = Deserialize<CreatedBooking>(_context.Response);
 
-            Assert.IsNotNull(created, "Відповідь не є JSON. " + _booker.ExchangeLog);
-            Assert.IsTrue(created.BookingId > 0,
-                "Сервіс не повернув номера бронювання. " + _booker.ExchangeLog);
-            Assert.IsNotNull(created.Booking,
-                "У відповіді немає самого бронювання. " + _booker.ExchangeLog);
-
+            Assert.IsTrue(created.BookingId > 0, "Сервіс не повернув номера бронювання.");
             AssertSameBooking(_context.SentBooking, created.Booking);
         }
 
         [Then(@"the booking matches the data I sent")]
         [Then(@"the booking matches the replacement data")]
+        [Then(@"the other fields keep the values I sent")]
         public void ThenTheBookingMatchesTheSentData()
         {
-            AssertStatus(HttpStatusCode.OK);
-
-            var actual = Deserialize<Booking>(_context.Response);
-
-            Assert.IsNotNull(actual, "Відповідь не є JSON. " + _booker.ExchangeLog);
-            AssertSameBooking(_context.SentBooking, actual);
+            Assert.AreEqual(HttpStatusCode.OK, _context.Response.StatusCode);
+            AssertSameBooking(_context.SentBooking, Deserialize<Booking>(_context.Response));
         }
 
         [Then(@"the booking is gone")]
         public void ThenTheBookingIsGone()
         {
-            RestResponse read = _booker.GetBooking(_context.BookingId);
-
-            Assert.AreEqual(HttpStatusCode.NotFound, read.StatusCode,
-                "Видалене бронювання все ще читається. " + _booker.ExchangeLog);
+            Assert.AreEqual(HttpStatusCode.NotFound, _booker.GetBooking(_context.BookingId).StatusCode,
+                "Видалене бронювання все ще читається.");
         }
 
         [Then(@"the list contains the created booking number")]
         public void ThenTheListContainsTheCreatedBookingNumber()
         {
-            AssertStatus(HttpStatusCode.OK);
+            Assert.AreEqual(HttpStatusCode.OK, _context.Response.StatusCode);
 
             var ids = Deserialize<List<BookingId>>(_context.Response);
 
-            Assert.IsNotNull(ids, "Відповідь не є списком. " + _booker.ExchangeLog);
-            Assert.IsTrue(ids.Count > 0, "Список бронювань порожній. " + _booker.ExchangeLog);
             Assert.IsTrue(ids.Any(item => item.Value == _context.BookingId),
-                "У списку немає бронювання " + _context.BookingId + ". " + _booker.ExchangeLog);
+                "У списку немає бронювання " + _context.BookingId + ".");
         }
 
         [Then(@"the total price equals (\d+)")]
         public void ThenTheTotalPriceEquals(int expected)
         {
-            AssertStatus(HttpStatusCode.OK);
-
-            var actual = Deserialize<Booking>(_context.Response);
-
-            Assert.IsNotNull(actual, "Відповідь не є JSON. " + _booker.ExchangeLog);
-            Assert.AreEqual(expected, actual.TotalPrice,
-                "Часткова зміна не записала нову суму. " + _booker.ExchangeLog);
+            Assert.AreEqual(HttpStatusCode.OK, _context.Response.StatusCode);
+            Assert.AreEqual(expected, Deserialize<Booking>(_context.Response).TotalPrice, "Часткова зміна не записала нову суму.");
         }
 
-        [Then(@"the other fields keep the values I sent")]
-        public void ThenTheOtherFieldsKeepTheirValues()
-        {
-            var actual = Deserialize<Booking>(_context.Response);
-
-            Assert.IsNotNull(actual, "Відповідь не є JSON. " + _booker.ExchangeLog);
-            AssertSameBooking(_context.SentBooking, actual);
-        }
-
-        // Кроки перевірки коду відповіді оголошені у CommonSteps: вони
-        // однакові для обох служб.
-
-        // -------------------------------------------------------- помічники ---
-
-        /// <summary>
-        /// Запамятовує номер створеного бронювання.
-        /// </summary>
-        /// <remarks>
-        /// Викликається з кроку When, бо саме він створює ресурс. Кроки Then
-        /// лише перевіряють результат і стану сценарію не змінюють, інакше
-        /// сценарій, який не містить кроку перевірки створення, лишився б без
-        /// номера бронювання і працював би з ресурсом за номером нуль.
-        /// </remarks>
-        private void RememberCreatedBooking()
-        {
-            var created = Deserialize<CreatedBooking>(_context.Response);
-
-            // Неповне тіло запиту сервіс відкидає, номера в такому разі немає.
-            if (created == null || created.BookingId <= 0)
-                return;
-
-            _context.BookingId = created.BookingId;
-            _context.CreatedBookingIds.Add(created.BookingId);
-        }
-
-        private void AssertStatus(HttpStatusCode expected)
-        {
-            Assert.AreEqual(expected, _context.Response.StatusCode,
-                "Код відповіді не той, що очікувався. " + _booker.ExchangeLog);
-        }
-
-        /// <summary>Порівнює бронювання за всіма полями.</summary>
         private static void AssertSameBooking(Booking expected, Booking actual)
         {
-            Assert.AreEqual(expected.FirstName, actual.FirstName, "Не збігається імя клієнта.");
-            Assert.AreEqual(expected.LastName, actual.LastName, "Не збігається прізвище клієнта.");
+            Assert.IsNotNull(actual, "У відповіді немає бронювання.");
+            Assert.AreEqual(expected.FirstName, actual.FirstName, "Не збігається імʼя.");
+            Assert.AreEqual(expected.LastName, actual.LastName, "Не збігається прізвище.");
             Assert.AreEqual(expected.TotalPrice, actual.TotalPrice, "Не збігається сума.");
             Assert.AreEqual(expected.DepositPaid, actual.DepositPaid, "Не збігається ознака депозиту.");
             Assert.AreEqual(expected.AdditionalNeeds, actual.AdditionalNeeds, "Не збігаються побажання.");
-
-            Assert.IsNotNull(actual.BookingDates, "У відповіді немає дат бронювання.");
-            Assert.AreEqual(expected.BookingDates.CheckIn, actual.BookingDates.CheckIn,
-                "Не збігається дата заїзду.");
-            Assert.AreEqual(expected.BookingDates.CheckOut, actual.BookingDates.CheckOut,
-                "Не збігається дата виїзду.");
+            Assert.AreEqual(expected.BookingDates.CheckIn, actual.BookingDates.CheckIn, "Не збігається дата заїзду.");
+            Assert.AreEqual(expected.BookingDates.CheckOut, actual.BookingDates.CheckOut, "Не збігається дата виїзду.");
         }
 
+        // На кодах 404 і 405 сервіс віддає простий текст, а не JSON.
         private static T Deserialize<T>(RestResponse response) where T : class
         {
-            if (string.IsNullOrWhiteSpace(response.Content))
-                return null;
-
             try
             {
-                return JsonConvert.DeserializeObject<T>(response.Content);
+                return JsonConvert.DeserializeObject<T>(response.Content ?? "");
             }
             catch (JsonException)
             {
-                // Сервіс не зобовязаний повертати JSON у разі помилки: на
-                // кодах 404 і 405 тіло є простим текстом.
                 return null;
             }
         }

@@ -4,15 +4,12 @@ using ApiTests.Models;
 
 namespace ApiTests.Support
 {
-    /// <summary>Готові набори даних для сценаріїв.</summary>
     public static class TestData
     {
-        /// <summary>
-        /// Коректне бронювання з усіма полями. Дати беруться від поточної, тож
-        /// набір не псується з часом, а до імені додається позначка часу, щоб
-        /// фільтр за іменем знаходив саме цей запис: сервіс спільний, і записи
-        /// з іменами з документації там уже є.
-        /// </summary>
+        public const int MissingBookingId = 99999999;
+
+        // Сервіс спільний і записи з такими іменами там уже є, тому до прізвища
+        // додається час, щоб пошук за іменем знаходив саме цей запис.
         public static Booking ValidBooking()
         {
             DateTime checkIn = DateTime.Today.AddDays(7);
@@ -23,19 +20,12 @@ namespace ApiTests.Support
                 LastName = "Test" + DateTime.Now.ToString("HHmmssfff", CultureInfo.InvariantCulture),
                 TotalPrice = 1200,
                 DepositPaid = true,
-                BookingDates = new BookingDates
-                {
-                    CheckIn = Iso(checkIn),
-                    CheckOut = Iso(checkIn.AddDays(6))
-                },
+                BookingDates = new BookingDates { CheckIn = Iso(checkIn), CheckOut = Iso(checkIn.AddDays(6)) },
                 AdditionalNeeds = "Breakfast"
             };
         }
 
-        /// <summary>
-        /// Інше коректне бронювання. Усі поля відмінні від ValidBooking, тому
-        /// повна заміна через PUT перевіряється на кожному полі.
-        /// </summary>
+        // Усі поля відмінні від ValidBooking, щоб заміна через PUT перевірялась на кожному.
         public static Booking ReplacementBooking()
         {
             DateTime checkIn = DateTime.Today.AddDays(30);
@@ -46,20 +36,10 @@ namespace ApiTests.Support
                 LastName = "Shevchenko",
                 TotalPrice = 999,
                 DepositPaid = false,
-                BookingDates = new BookingDates
-                {
-                    CheckIn = Iso(checkIn),
-                    CheckOut = Iso(checkIn.AddDays(3))
-                },
+                BookingDates = new BookingDates { CheckIn = Iso(checkIn), CheckOut = Iso(checkIn.AddDays(3)) },
                 AdditionalNeeds = "Dinner"
             };
         }
-
-        /// <summary>
-        /// Номер, якого на сервісі немає. Перевірка читання відсутнього
-        /// ресурсу. Значення завелике, щоб його встигли зайняти.
-        /// </summary>
-        public const int MissingBookingId = 99999999;
 
         private static string Iso(DateTime value)
         {

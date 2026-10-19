@@ -6,19 +6,13 @@ using OpenQA.Selenium;
 
 namespace BankingTests.Pages
 {
-    /// <summary>
-    /// Вкладка Open Account: вибір клієнта, вибір валюти та створення рахунку.
-    /// Результат операції застосунок повідомляє через діалог alert браузера.
-    /// </summary>
     public class OpenAccountPage : BasePage
     {
         private static readonly By CustomerSelect = By.Id("userSelect");
         private static readonly By CurrencySelect = By.Id("currency");
 
-        // Кнопку Process шукаємо всередині форми: у шапці сторінки є інші
-        // кнопки з type='submit', і без форми локатор був би неоднозначним.
-        private static readonly By ProcessButton =
-            By.CssSelector("form[name='myForm'] button[type='submit']");
+        // Лише всередині форми: у шапці сторінки є інші кнопки type='submit'.
+        private static readonly By ProcessButton = By.CssSelector("form[name='myForm'] button[type='submit']");
 
         public OpenAccountPage(BrowserDriver browser) : base(browser)
         {
@@ -29,7 +23,6 @@ namespace BankingTests.Pages
             get { return IsVisible(ProcessButton, BrowserDriver.DefaultTimeout); }
         }
 
-        /// <summary>Перелік клієнтів у випадному списку, без рядка підказки.</summary>
         public IReadOnlyList<string> AvailableCustomers
         {
             get
@@ -51,20 +44,12 @@ namespace BankingTests.Pages
             Dropdown(CurrencySelect).SelectByText(currency);
         }
 
-        public string SelectedCustomer
-        {
-            get { return Dropdown(CustomerSelect).SelectedOption.Text.Trim(); }
-        }
-
         public void Process()
         {
             Click(ProcessButton);
         }
 
-        /// <summary>
-        /// Читає текст діалогу alert і закриває його.
-        /// </summary>
-        /// <returns>Текст повідомлення або <c>null</c>, якщо діалог не з'явився.</returns>
+        // Результат застосунок повідомляє діалогом alert. null, якщо діалогу немає.
         public string ReadAndAcceptAlert(TimeSpan timeout)
         {
             IAlert alert;
@@ -93,19 +78,14 @@ namespace BankingTests.Pages
             return text;
         }
 
-        /// <summary>
-        /// Дістає номер рахунку з повідомлення виду
-        /// «Account created successfully with account Number :1016».
-        /// </summary>
+        // «Account created successfully with account Number :1016» -> «1016»
         public static string ExtractAccountNumber(string alertText)
         {
             if (string.IsNullOrEmpty(alertText))
                 return string.Empty;
 
             int separator = alertText.LastIndexOf(':');
-            return separator < 0
-                ? string.Empty
-                : alertText.Substring(separator + 1).Trim();
+            return separator < 0 ? string.Empty : alertText.Substring(separator + 1).Trim();
         }
     }
 }

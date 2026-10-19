@@ -22,8 +22,7 @@ Scenario: Unknown user does not return a token
 	Then no token is returned
 	And the refusal reason is "Bad credentials"
 
-# Запис без маркера доступу не повинен проходити. Змінюється лише операція,
-# бронювання та решта умов однакові.
+# Запис без маркера не повинен проходити. Змінюється лише операція.
 @auth @negative
 Scenario Outline: Write operation without a token is forbidden
 	Given a created booking

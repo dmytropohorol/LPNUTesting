@@ -11,20 +11,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- RestSharp: клієнт HTTP для тестування Web API. Версія 112 потрібна
-         через відому уразливість у 111 і давніших (GHSA-4rr6-2v9v-wcpc). -->
+    <!-- 112, бо в 111 і давніших відома уразливість GHSA-4rr6-2v9v-wcpc -->
     <PackageReference Include="RestSharp" Version="112.1.0" />
-    <!-- Newtonsoft замість вбудованого System.Text.Json: на .NET Framework
-         поводиться передбачувано і дає JObject для перевірки структури
-         відповіді без оголошення класів. -->
     <PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="112.1.0" />
-
-    <!-- SpecFlow: BDD для .NET. Пакет Tools.MsBuild.Generation генерує код
-         кроків із .feature під час збирання, тому розширення для Visual
-         Studio не потрібне. -->
     <PackageReference Include="SpecFlow.MsTest" Version="3.9.74" />
     <PackageReference Include="SpecFlow.Tools.MsBuild.Generation" Version="3.9.74" />
-
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="MSTest.TestAdapter" Version="3.6.4" />
     <PackageReference Include="MSTest.TestFramework" Version="3.6.4" />

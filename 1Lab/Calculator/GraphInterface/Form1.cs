@@ -292,9 +292,6 @@ namespace GraphInterface
                 textBoxExpression.Focus();
                 buttonEqual_Click(sender, e);
             }
-            // Фільтрація символів виконується у Form1_KeyPress за самим
-            // символом: коди клавіш залежать від розкладки, тому «m», «p»
-            // і пробіл через них не проходили.
         }
 
         private void textBoxResult_TextChanged(object sender, EventArgs e)
@@ -303,12 +300,8 @@ namespace GraphInterface
         }
         private void Form1_KeyPress(object sender, KeyPressEventArgs e)
         {
-            // Фільтра введення немає: у поле «Expression» можна ввести будь-який
-            // символ. Некоректні символи виявить аналізатор і поверне Error 02
-            // із зазначенням позиції — так, як описано в специфікації (п. 2.2.3).
-
-            // Єдине перетворення: «M» і «P» приводимо до нижнього регістру,
-            // бо унарні операції позначаються саме «m» та «p» (п. 4.3.3).
+            // Фільтра немає: некоректні символи ловить аналізатор (Error 02).
+            // Унарні операції позначаються малими m і p (п. 4.3.3).
             if (e.KeyChar == 'M' || e.KeyChar == 'P')
                 e.KeyChar = char.ToLowerInvariant(e.KeyChar);
         }
